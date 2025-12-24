@@ -64,6 +64,13 @@ dependencies {
 
     implementation("androidx.compose.material:material-icons-extended")
 
+    implementation("androidx.datastore:datastore-preferences:1.1.0")
+
+        // ... other dependencies
+    implementation("androidx.compose.material:material-icons-extended:1.6.8") // Check for the latest version
+
+
+
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

@@ -13,8 +13,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.flightsearch.FlightViewModel
+import com.example.flightsearch.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -25,12 +27,12 @@ fun SearchFlightApp() {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Flight Search") },
+                title = { Text(stringResource(R.string.appbar)) },
                 actions = {
                     IconButton(onClick = { }) {
                         Icon(
                             imageVector = Icons.Default.MoreVert,
-                            contentDescription = "More options"
+                            contentDescription = stringResource(R.string.more_options)
                         )
                     }
                 }
@@ -40,7 +42,6 @@ fun SearchFlightApp() {
         SearchFlightScreen(
             viewModel = viewModel,
             uiState = uiState,
-            onQueryChange = { query -> viewModel.onSearchQuery(query) },
             modifier = Modifier.padding(innerPadding)
         )
     }

@@ -1,3 +1,32 @@
+
 <resources>
-    <string name="app_name">Flight Search</string>
+<string name="app_name">Flight Search</string>
+
+<string name="search_airport_hint">Search airport...</string>
+<string name="voice_input_desc">Voice input</string>
+
+<string name="loading">Loading...</string>
+<string name="error_label">Error: %s</string>
+<string name="empty_favorites">Your favorite routes will appear here.</string>
+
+<string name="departure_label">Departure: %s</string>
+<string name="destination_label">Destination: %s</string>
+<string name="remove_favorite_desc">Remove favorite</string>
+
+<string name="favorite_desc">Favorite</string>
+
+
+<string name="flight_route">FLIGHT ROUTE</string>
+<string name="from_label">FROM</string>
+<string name="to_label">TO</string>
+<string name="select_departure">Select departure</string>
+<string name="flight_desc">Flight</string>
+<string name="select_departure_placeholder">Select departure</string>
+<string name="unknown_city">Unknown</string>
+
+<string name="estimated_distance">≈ 1,245 km • 2h 15m</string>
+
+<string name="unknown_code">j???</string>
+    <string name="appbar">Flight Search</string>
+    <string name="more_options">More options</string>
 </resources>

@@ -10,48 +10,87 @@ import com.example.flightsearch.data.favorite.FavoriteItem
 import com.example.flightsearch.data.favorite.FavoriteRepository
 import com.example.flightsearch.data.flights.AirportItem
 import com.example.flightsearch.data.flights.AirportRepository
+import com.example.flightsearch.data.preferences.SearchPreferencesRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
+
 class FlightViewModel(
     private val favoriteRepository: FavoriteRepository,
-    private val airportRepository: AirportRepository
-): ViewModel() {
-    private val _flights = MutableStateFlow(FlightUiState())
-    val uiState: StateFlow<FlightUiState> = _flights.asStateFlow()
+    private val airportRepository: AirportRepository,
+    private val searchPreferencesRepository: SearchPreferencesRepository
+) : ViewModel() {
 
-
+    private val _uiState = MutableStateFlow(FlightUiState())
+    val uiState: StateFlow<FlightUiState> = _uiState.asStateFlow()
 
     init {
-        onSearchQuery("")
+        observeFavorites()
+        restoreSearchQuery()
     }
-//
-    fun onSearchQuery(query:String){
-        _flights.update {
-            it.copy(searchQuery = query, isSearching = true)
+
+    private fun observeFavorites() {
+        viewModelScope.launch {
+            favoriteRepository.favorites.collect { favorites ->
+                _uiState.update { it.copy(favorites = favorites) }
+            }
         }
+    }
+    private fun restoreSearchQuery() {
+        viewModelScope.launch {
+            searchPreferencesRepository.searchQuery.collect { savedQuery ->
+                _uiState.update { it.copy(searchQuery = savedQuery) }
+
+                if (savedQuery.isBlank()) {
+                    _uiState.update {
+                        it.copy(
+                            searchResult = emptyList(),
+                            selectedAirport = null,
+                            isSearching = false
+                        )
+                    }
+                } else {
+                    onSearchQuery(savedQuery)
+                }
+            }
+        }
+    }
+
+    fun toggleFavorite(departure: AirportItem?, destination: AirportItem) {
+        val depCode = departure?.iata_code ?: return
+        val destCode = destination.iata_code
+
+        viewModelScope.launch {
+            if (_uiState.value.favorites.any { it.departure_code == depCode && it.destination_code == destCode }) {
+                favoriteRepository.deleteFavoriteByCodes(depCode, destCode)
+            } else {
+                favoriteRepository.insertFavorite(FavoriteItem(departure_code = depCode, destination_code = destCode))
+            }
+        }
+    }
+
+    fun onSearchQuery(query: String) {
+        _uiState.update { it.copy(searchQuery = query, isSearching = true) }
+
         viewModelScope.launch {
             try {
-                if(query.isBlank()){
-                    val favorites = favoriteRepository.getAllFavorite()
-                    _flights.update {
+                if (query.isBlank()) {
+                    searchPreferencesRepository.clearSearchQuery()
+                    _uiState.update {
                         it.copy(
-                            favorites = favorites,
                             searchResult = emptyList(),
-                            isSearching = false,
-                            errorMessage = null
+                            selectedAirport = null,
+                            isSearching = false
                         )
-
                     }
                     return@launch
                 }
-               //otherwise search for airports
+
                 val airports = airportRepository.searchAirports("%$query%")
-                _flights.update {
+                _uiState.update {
                     it.copy(
                         searchResult = airports,
                         isSearching = false,
@@ -59,83 +98,70 @@ class FlightViewModel(
                     )
                 }
 
-            }catch (e: Exception){
-               _flights.update { it.copy(
-                   isSearching = false, errorMessage = e.message
-               ) }
+            } catch (e: Exception) {
+                _uiState.update {
+                    it.copy(isSearching = false, errorMessage = e.message)
+                }
             }
         }
     }
 
+    /** User selects an airport suggestion */
     fun onSuggestionSelected(airport: AirportItem) {
         viewModelScope.launch {
             try {
-                // Fetch all airports except the selected one
-                val destinations = airportRepository.getAllAirports()
+                // Persist FINAL search value
+                searchPreferencesRepository.saveSearchQuery(airport.name)
+
+                val destinations = airportRepository
+                    .getAllAirports()
                     .filter { it.id != airport.id }
 
-                _flights.update {
+                _uiState.update {
                     it.copy(
                         selectedAirport = airport,
-                        searchResult = destinations, // destinations are the searchResult
                         searchQuery = airport.name,
+                        searchResult = destinations,
                         isSearching = false
                     )
                 }
             } catch (e: Exception) {
-                _flights.update { it.copy(errorMessage = e.message) }
+                _uiState.update { it.copy(errorMessage = e.message) }
             }
         }
     }
 
-    //
-//    private fun loadFavorites(){
-//        viewModelScope.launch {
-//            favoriteRepository.getAllFavorite()
-//                .catch { e->_flights.update {it.copy(errorMessage = e.message)  } }
-//                .collect { favorites->
-//                    _flights.update { it.copy(favorites = favorites) }
-//                }
-//        }
-//    }
-    fun addFavorite(favoriteItem: FavoriteItem) {
+    fun addFavorite(item: FavoriteItem) {
         viewModelScope.launch {
-            favoriteRepository.insertFavorite(favoriteItem)
+            favoriteRepository.insertFavorite(item)
         }
     }
-    fun removeFavorite(favoriteItem: FavoriteItem) {
-        viewModelScope.launch {
-            favoriteRepository.deleteFavorite(favoriteItem)
-        }
-    }
-//
-//    private fun AirportItem
 
-    private fun AirportItem.toUiModel() = FlightUiModel(
-        code = iata_code,
-        name = name
-    )
-    companion object{
+    fun removeFavorite(item: FavoriteItem) {
+        viewModelScope.launch {
+            favoriteRepository.deleteFavoriteByCodes(
+                depCode = item.departure_code,
+                destCode = item.destination_code
+            )
+        }
+    }
+
+
+    companion object {
         val Factory: ViewModelProvider.Factory = viewModelFactory {
             initializer {
-                val application = (this[APPLICATION_KEY] as FlightSearchApplication)
+                val application = this[APPLICATION_KEY] as FlightSearchApplication
                 val container = application.container
+
                 FlightViewModel(
                     airportRepository = container.airportRepository,
-                    favoriteRepository = container.favoriteRepository
+                    favoriteRepository = container.favoriteRepository,
+                    searchPreferencesRepository = container.userPreferencesRepository
                 )
             }
         }
     }
-
-
 }
-
-
-data class FlightUiModel(
-    val code: String,
-    val name: String,
-)
 
 data class FlightUiState(
     val searchQuery: String = "",
@@ -145,16 +171,4 @@ data class FlightUiState(
     val isSearching:Boolean = false,
     val errorMessage:String? = null
 )
-//data class FavoriteUiModel(
-//    val departureCode:String,
-//    val destinationCode:String
-//)
-//
-//data class FlightUiState(
-//    val searchQuery: String = "",
-//    val airports: List<FlightUiState> = emptyList(),
-//    val favorites: List<FavoriteItem> = emptyList(),
-//    val isLoading: Boolean = false,
-//    val errorMessage: String? = null
-//)
 
