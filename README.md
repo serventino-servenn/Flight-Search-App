@@ -9,14 +9,35 @@ This project demonstrates how to build a fully-featured flight search applicatio
 * Clean architecture following Android best practices
 
 ## Screenshots
-_(Screenshots coming soon)_
 
-## Features
-* Search airports by **IATA code or name**
-* Autocomplete suggestions as you type
-* View available routes from a selected departure airport
-* Save frequently used routes to favorites
-* Quick access to favorite destinations
+### Home Screen
+<img width="300" alt="Main screen showing search input" src="https://github.com/user-attachments/assets/563d55b8-f0ce-4f8d-8cc2-9439d1e3efe4" />
+
+### Suggestions Screen
+Suggestions appear as the user types
+
+<img width="300" alt="Autocomplete suggestions list" src="https://github.com/user-attachments/assets/5527c25b-94a3-4407-9923-7bb81dba739b" />
+
+### Departure Selected
+User picks a departure airport; destinations list appears.User can like/unlike favorite routes
+
+<img width="300" alt="Favorite routes highlighted" src="https://github.com/user-attachments/assets/05df8f58-bed9-4156-8b37-8778ab412edf" />
+
+### Favorite Routes
+List of favorites shown on app load or when search is cleared
+
+<img width="300" alt="Favorite routes list" src="https://github.com/user-attachments/assets/b15f16e8-59c4-4758-b94c-0a4da689a584" />
+
+### Remove Favorite Route
+Unlike a favorite; list updates in real-time
+
+<img width="300" alt="Remove favorite route" src="https://github.com/user-attachments/assets/9a6f7344-7d97-4867-a6a0-9188b6b1b24e" />
+
+### Restore Last Search
+App restart restores last search query
+
+<img width="300" alt="Restore last search on app restart" src="https://github.com/user-attachments/assets/07ff292c-25ea-48d5-b52b-1597b9f69785" />
+
 
 ## Architecture
 The app follows a unidirectional data flow:
