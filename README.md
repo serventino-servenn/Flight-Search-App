@@ -19,7 +19,7 @@ Suggestions appear as the user types
 <img width="300" alt="Autocomplete suggestions list" src="https://github.com/user-attachments/assets/5527c25b-94a3-4407-9923-7bb81dba739b" />
 
 ### Departure Selected
-User picks a departure airport; destinations list appears.User can like/unlike favorite routes
+Select a departure airport to view destinations and like or unlike favorite routes.
 
 <img width="300" alt="Favorite routes highlighted" src="https://github.com/user-attachments/assets/05df8f58-bed9-4156-8b37-8778ab412edf" />
 
