@@ -1,14 +1,12 @@
 package com.example.flightsearch.ui.screen
 
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -23,24 +21,29 @@ import com.example.flightsearch.R
 fun SearchFlightApp() {
     val viewModel: FlightViewModel = viewModel(factory = FlightViewModel.Factory)
     val uiState by viewModel.uiState.collectAsState()
+    val hasNoResults =
+        uiState.searchQuery.isNotBlank() &&
+                uiState.searchResult.isEmpty() &&
+                !uiState.isSearching
+
 
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text(stringResource(R.string.appbar)) },
-                actions = {
-                    IconButton(onClick = { }) {
-                        Icon(
-                            imageVector = Icons.Default.MoreVert,
-                            contentDescription = stringResource(R.string.more_options)
-                        )
-                    }
-                }
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor =  MaterialTheme.colorScheme.surfaceVariant
+                )
+
             )
         }
     ) { innerPadding ->
         SearchFlightScreen(
             viewModel = viewModel,
+            hasNoResults = hasNoResults,
+            onSuggestionSelected = {viewModel.onSuggestionSelected(it)},
+            onQueryChange = {viewModel.onSearchQueryChanged(it)},
+            onToggleFavorite = viewModel::toggleFavorite,
             uiState = uiState,
             modifier = Modifier.padding(innerPadding)
         )

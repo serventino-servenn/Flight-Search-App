@@ -10,7 +10,7 @@ interface AirportDao {
     suspend fun getDepartures(departureCode: String):List<AirportItem>
 
     //search airport by iata code or name
-    @Query("select * from airport where iata_code like :query or name like:query")
+    @Query("select * from airport where iata_code like:query or name like:query")
     suspend fun searchAirports(query:String):List<AirportItem>
 
     @Query("Select * from airport")

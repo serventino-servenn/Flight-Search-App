@@ -17,21 +17,23 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AirplanemodeActive
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.FavoriteBorder
-import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -48,7 +50,9 @@ import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
 import com.example.flightsearch.FlightUiState
 import com.example.flightsearch.FlightViewModel
 import com.example.flightsearch.R
@@ -59,6 +63,10 @@ import com.example.flightsearch.ui.theme.FlightSearchTheme
 @Composable
 fun SearchFlightScreen(
     viewModel: FlightViewModel,
+    onQueryChange: (String) -> Unit,
+    onSuggestionSelected: (AirportItem) -> Unit,
+    onToggleFavorite: (AirportItem?, AirportItem) -> Unit,
+    hasNoResults:Boolean,
     uiState: FlightUiState,
     modifier: Modifier = Modifier
 ) {
@@ -72,7 +80,8 @@ fun SearchFlightScreen(
         SearchField(
             query = uiState.searchQuery,
             onQueryChange = {
-                viewModel.onSearchQuery(it)
+                onQueryChange(it)
+
                 showSuggestions = true
             }
         )
@@ -80,13 +89,15 @@ fun SearchFlightScreen(
         Spacer(Modifier.height(dimensionResource(id = R.dimen.spacing_medium)))
 
         SearchContent(
-            viewModel = viewModel,
+//            viewModel = viewModel,
             uiState = uiState,
+            hasNoResults = hasNoResults,
             showSuggestions = showSuggestions,
             onSuggestionSelected = {
                 showSuggestions = false
-                viewModel.onSuggestionSelected(it)
-            }
+                onSuggestionSelected(it)
+            },
+            onToggleFavorite = onToggleFavorite
         )
     }
 }
@@ -101,15 +112,77 @@ fun SearchField(
         value = query,
         onValueChange = onQueryChange,
         modifier = modifier.fillMaxWidth(),
-        placeholder = { Text(stringResource(id = R.string.search_airport_hint)) },
-        leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
-        trailingIcon = {
-            Icon(
-                Icons.Default.Mic,
-                contentDescription = stringResource(id = R.string.voice_input_desc)
-            )
+        placeholder = {
+            Text(stringResource(R.string.search_airport_hint))
         },
-        singleLine = true
+        leadingIcon = {
+            Icon(Icons.Default.Search, contentDescription = null)
+        },
+        trailingIcon = {
+            if (query.isNotEmpty()) {
+                IconButton(onClick = { onQueryChange("") }) {
+                    Icon(
+                        Icons.Default.Close,
+                        contentDescription = stringResource(R.string.clear_button),
+                        tint = MaterialTheme.colorScheme.outline
+                    )
+                }
+            }
+        },
+        singleLine = true,
+
+
+        shape = MaterialTheme.shapes.large,
+        colors = OutlinedTextFieldDefaults.colors(
+            focusedBorderColor = MaterialTheme.colorScheme.primary,
+            unfocusedBorderColor = MaterialTheme.colorScheme.outline
+        )
+    )
+
+}
+
+@Composable
+fun SearchContent(
+//    viewModel: FlightViewModel,
+    uiState: FlightUiState,
+    hasNoResults: Boolean,
+    showSuggestions: Boolean,
+    onSuggestionSelected: (AirportItem) -> Unit,
+    onToggleFavorite: (AirportItem?, AirportItem) -> Unit
+) {
+    when {
+        uiState.isSearching -> LoadingState()
+        uiState.errorMessage != null -> ErrorState(uiState.errorMessage)
+        hasNoResults -> NoAirportsFound(uiState = uiState)
+
+        uiState.searchQuery.isBlank() ->
+            FavoritesSection(
+                favorites = uiState.favorites,
+                airports = uiState.allAirports,
+                onToggleFavorite = onToggleFavorite
+            )
+
+        showSuggestions -> SuggestionsList(
+            airports = uiState.searchResult,
+            onSuggestionSelected = onSuggestionSelected,
+        )
+        else -> DestinationResults(
+            departure = uiState.selectedAirport,
+            destinations = uiState.searchResult,
+            favorites = uiState.favorites,
+            onToggleFavorite = onToggleFavorite
+        )
+    }
+}
+
+
+@Composable
+fun NoAirportsFound(uiState: FlightUiState){
+    Text(
+        text = stringResource(R.string.no_airports_found_for, uiState.searchQuery),
+        style = MaterialTheme.typography.bodyMedium,
+        color = MaterialTheme.colorScheme.error,
+        modifier = Modifier.padding(16.dp)
     )
 }
 
@@ -134,51 +207,35 @@ fun ErrorState(message: String) {
 @Composable
 fun FavoritesSection(
     favorites: List<FavoriteItem>,
-    onRemoveFavorite: (FavoriteItem) -> Unit
+    airports: List<AirportItem>,
+    onToggleFavorite: (AirportItem?, AirportItem) -> Unit
 ) {
     if (favorites.isEmpty()) {
         Text(stringResource(id = R.string.empty_favorites))
-    } else {
-        LazyColumn {
-            items(favorites) { favorite ->
-                FavoriteCard(
-                    favorite = favorite,
-                    onRemoveFavorite = onRemoveFavorite
-                )
-            }
-        }
+        return
     }
-}
 
-@Composable
-fun FavoriteCard(
-    favorite: FavoriteItem,
-    onRemoveFavorite: (FavoriteItem) -> Unit
-) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = dimensionResource(id = R.dimen.card_padding_vertical))
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(
-                    horizontal = dimensionResource(id = R.dimen.card_padding_horizontal),
-                    vertical = dimensionResource(id = R.dimen.spacing_large)
-                ),
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Column {
-                Text(stringResource(R.string.departure_label, favorite.departure_code))
-                Text(stringResource(R.string.destination_label, favorite.destination_code))
+    LazyColumn {
+        items(favorites) { favorite ->
+
+            val departure = airports.firstOrNull {
+                it.iata_code == favorite.departure_code
             }
 
-            IconButton(onClick = { onRemoveFavorite(favorite) }) {
-                Icon(
-                    imageVector = Icons.Default.Favorite,
-                    contentDescription = stringResource(id = R.string.remove_favorite_desc),
-                    tint = Color.Red
+            val destination = airports.firstOrNull {
+                it.iata_code == favorite.destination_code
+            }
+
+            if (departure != null && destination != null) {
+                DestinationCard(
+                    departure = departure,
+                    destination = destination,
+                    isFavorite = true,
+                    onToggleFavorite = onToggleFavorite,
+                    modifier = Modifier.padding(
+                        vertical = dimensionResource(id = R.dimen.spacing_small),
+                        horizontal = dimensionResource(id = R.dimen.spacing_medium)
+                    )
                 )
             }
         }
@@ -188,33 +245,46 @@ fun FavoriteCard(
 @Composable
 fun SuggestionsList(
     airports: List<AirportItem>,
-    favorites: List<FavoriteItem>,
     onSuggestionSelected: (AirportItem) -> Unit,
-    onToggleFavorite: (AirportItem?, AirportItem) -> Unit
+    modifier: Modifier = Modifier
 ) {
-    LazyColumn {
-        items(airports) { airport ->
-            val isFavorite = favorites.any { it.departure_code == airport.iata_code }
-            Row(
+    LazyColumn(
+        modifier = modifier.fillMaxWidth()
+    ) {
+        itemsIndexed(airports) { index, airport ->
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clickable { onSuggestionSelected(airport) }
-                    .padding(dimensionResource(id = R.dimen.spacing_large)),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Text("${airport.name} (${airport.iata_code})")
-                IconButton(
-                    onClick = { onToggleFavorite(null, airport) }
-                ) {
-                    Icon(
-                        imageVector = if (isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                        contentDescription = stringResource(id = R.string.favorite_desc)
+                    .padding(
+                        horizontal = dimensionResource(id = R.dimen.spacing_large),
+                        vertical = dimensionResource(id = R.dimen.spacing_medium)
                     )
-                }
+            ) {
+                Text(
+                    text = airport.name,
+                    style = MaterialTheme.typography.bodyLarge,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+
+                Text(
+                    text = airport.iata_code,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            if (index < airports.lastIndex) {
+                HorizontalDivider(
+                    modifier = Modifier.padding(start = dimensionResource(id = R.dimen.spacing_large)),
+                    thickness = 0.5.dp
+                )
             }
         }
     }
 }
+
 
 @Composable
 fun DestinationResults(
@@ -269,7 +339,7 @@ fun DestinationCard(
         val strokeWidth = dimensionResource(id = R.dimen.line_stroke_width)
         val dotSpacing = dimensionResource(id = R.dimen.dot_spacing)
         Column(modifier = Modifier.padding(dimensionResource(id = R.dimen.destination_card_padding))) {
-            // Small heart icon
+
             Box(
                 modifier = Modifier
                     .size(dimensionResource(id = R.dimen.heart_icon_box_size))
@@ -293,9 +363,7 @@ fun DestinationCard(
 
             Spacer(Modifier.height(dimensionResource(id = R.dimen.spacing_extra_large)))
 
-            // Route with airplane and heart combined
             Box(modifier = Modifier.fillMaxWidth()) {
-                // Dotted line
                 Canvas(modifier = Modifier.fillMaxWidth()) {
                     val strokeWidth = strokeWidth.toPx()
                     val dotSpacing = dotSpacing.toPx()
@@ -312,14 +380,13 @@ fun DestinationCard(
                     )
                 }
 
-                // Airplane with heart trail
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .offset(y = dimensionResource(id = R.dimen.airplane_offset)),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    // Departure
+
                     Column(horizontalAlignment = Alignment.Start) {
                         Text(
                             text = departure?.iata_code ?: stringResource(id = R.string.unknown_code),
@@ -330,7 +397,6 @@ fun DestinationCard(
                         )
                     }
 
-                    // Airplane icon
                     Box(
                         modifier = Modifier.offset(y = dimensionResource(id = R.dimen.spacing_small)),
                         contentAlignment = Alignment.Center
@@ -343,7 +409,6 @@ fun DestinationCard(
                         )
                     }
 
-                    // Destination
                     Column(horizontalAlignment = Alignment.End) {
                         Text(
                             text = destination.iata_code,
@@ -358,7 +423,6 @@ fun DestinationCard(
 
             Spacer(Modifier.height(dimensionResource(id = R.dimen.destination_card_spacing)))
 
-            // Airport names
             Text(
                 text = "${departure?.name ?: stringResource(id = R.string.select_departure_placeholder)} → ${destination.name}",
                 style = MaterialTheme.typography.bodySmall,
@@ -371,42 +435,60 @@ fun DestinationCard(
 }
 
 
+
+//preview section
+
+@Preview(showBackground = true)
 @Composable
-fun SearchContent(
-    viewModel: FlightViewModel,
-    uiState: FlightUiState,
-    showSuggestions: Boolean,
-    onSuggestionSelected: (AirportItem) -> Unit
-) {
-    when {
-        uiState.isSearching -> LoadingState()
-        uiState.errorMessage != null -> ErrorState(uiState.errorMessage)
-        uiState.searchQuery.isBlank() ->
-            FavoritesSection(
-                favorites = uiState.favorites,
-                onRemoveFavorite = viewModel::removeFavorite
-            )
-        showSuggestions -> SuggestionsList(
-            airports = uiState.searchResult,
-            favorites = uiState.favorites,
-            onSuggestionSelected = onSuggestionSelected,
-            onToggleFavorite = viewModel::toggleFavorite
-        )
-        else -> DestinationResults(
-            departure = uiState.selectedAirport,
-            destinations = uiState.searchResult,
-            favorites = uiState.favorites,
-            onToggleFavorite = viewModel::toggleFavorite
-        )
-    }
-}
-
-
-
-@Preview
-@Composable
-fun FlightSearchScreenPreview(){
+fun SearchFieldPreview_Empty() {
     FlightSearchTheme {
-
+        SearchField(
+            query = "",
+            onQueryChange = {}
+        )
     }
 }
+
+@Preview(showBackground = true)
+@Composable
+fun FavoriteCardPreview() {
+    FlightSearchTheme {
+        FavoritesSection(
+            favorites = listOf(FavoriteItem(0,"JFK", "LAX")),
+            airports = listOf(
+                AirportItem(1, "John F. Kennedy Intl", "JFK", passengers = 5),
+                AirportItem(2, "Los Angeles Intl", "LAX", passengers = 6)
+            ),
+            onToggleFavorite = { _, _ -> }
+        )
+    }
+}
+@Preview(showBackground = true)
+@Composable
+fun SuggestionsListPreview() {
+    FlightSearchTheme {
+        SuggestionsList(
+            airports = listOf(
+                AirportItem(1, "John F. Kennedy Intl", "JFK", passengers = 5),
+                AirportItem(2, "Los Angeles Intl", "LAX", passengers = 6)
+            ),
+            onSuggestionSelected = {}
+        )
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun DestinationCardPreview() {
+    FlightSearchTheme {
+        DestinationCard(
+            departure = AirportItem(1, "John F. Kennedy Intl", "JFK", passengers = 6),
+            destination = AirportItem(2, "Los Angeles Intl", "LAX", passengers = 10),
+            isFavorite = true,
+            onToggleFavorite = { _, _ -> }
+        )
+    }
+}
+
+
+

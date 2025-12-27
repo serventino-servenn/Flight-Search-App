@@ -13,7 +13,6 @@ class OfflineFavoriteRepository(
     }
 
 
-
     override val favorites: Flow<List<FavoriteItem>> =
         favoriteDao.getAllFavorites()
 
