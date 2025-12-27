@@ -1,40 +1,47 @@
 ## Flight Search App
-A modern Android App for searching flight routes, saving favorite destinations, and managing airport information using Jetpack Compose and and modern Android architecture components.
-## Project Overview 
+A modern Android app for searching flight routes, saving favorite destinations, and managing airport information using Jetpack Compose and modern Android architecture components.
+
+## Project Overview
 This project demonstrates how to build a fully-featured flight search application with:
 * Real-time airport search with **autocomplete suggestions**
 * **Room database** integration for efficient data persistence
-* **DataStore preferences** for saving user search history
-* Modern Jetpack Compose UI with **responsive design**
+* **DataStore** for persisting lightweight user preferences
 * Clean architecture following Android best practices
 
 ## Screenshots
-
+_(Screenshots coming soon)_
 
 ## Features
-* Real-time airport search with IATA code or name matching
+* Search airports by **IATA code or name**
 * Autocomplete suggestions as you type
-* View all possible routes from selected departure airport
-* Save frequently used flight routes
+* View available routes from a selected departure airport
+* Save frequently used routes to favorites
 * Quick access to favorite destinations
 
+## Architecture
+The app follows a unidirectional data flow:
+UI → ViewModel → Repository → Room/DataStore → ViewModel → UI
+
 ## Architecture Components
-* ViewModel - UI-related data holder
-* StateFlow/SharedFlow - Reactive streams
-* Coroutines - Asynchronous programming
-* Dependency Injection - Manual DI 
+* ViewModel
+* StateFlow
+* Coroutines
+* Room
+* DataStore
+* Manual Dependency Injection
+
+
 
 ## Getting Started
 
 ### Prerequisites
 - Android Studio Otter or later
 - Kotlin 2.0.21+
-- Android SDK **API 33+**
+- Android SDK API 33+
+
 ### Installation
-
 Clone the repository:
-
 ```bash
-https://github.com/serventino-servenn/Flight-Search-App.git
+git clone https://github.com/serventino-servenn/Flight-Search-App.git
 
 
