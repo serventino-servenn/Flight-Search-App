@@ -114,12 +114,9 @@ class FlightViewModel(
         }
     }
 
+
     private fun performSearch(query: String) {
         if (query.isBlank()) {
-            viewModelScope.launch {
-                searchPreferencesRepository.clearSearchQuery()
-            }
-
             _uiState.update {
                 it.copy(
                     searchResult = emptyList(),
@@ -130,22 +127,20 @@ class FlightViewModel(
             return
         }
 
-        _uiState.update { it.copy(isSearching = true) }
+        viewModelScope.launch {
+            _uiState.update { it.copy(isSearching = true) }
 
-        val results = _uiState.value.allAirports.filter {
-            it.name.contains(query, ignoreCase = true) ||
-                    it.iata_code.contains(query, ignoreCase = true)
-        }
+            val results = airportRepository.searchAirports("%$query%")
 
-        _uiState.update {
-            it.copy(
-                searchResult = results,
-                isSearching = false,
-                errorMessage = null
-            )
+            _uiState.update {
+                it.copy(
+                    searchResult = results,
+                    isSearching = false,
+                    errorMessage = null
+                )
+            }
         }
     }
-
 
 
     fun onSuggestionSelected(airport: AirportItem) {

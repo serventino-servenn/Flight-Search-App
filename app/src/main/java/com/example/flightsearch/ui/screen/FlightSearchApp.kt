@@ -24,7 +24,9 @@ fun SearchFlightApp() {
     val hasNoResults =
         uiState.searchQuery.isNotBlank() &&
                 uiState.searchResult.isEmpty() &&
+                uiState.selectedAirport == null &&
                 !uiState.isSearching
+
 
 
     Scaffold(

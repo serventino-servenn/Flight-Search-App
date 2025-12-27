@@ -153,7 +153,7 @@ fun SearchContent(
     when {
         uiState.isSearching -> LoadingState()
         uiState.errorMessage != null -> ErrorState(uiState.errorMessage)
-        hasNoResults -> NoAirportsFound(uiState = uiState)
+//        hasNoResults -> NoAirportsFound(uiState = uiState)
 
         uiState.searchQuery.isBlank() ->
             FavoritesSection(
